@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      /* 간단한 스타일 */
+      ul { list-style: none; padding: 0; }
+      li { padding: 8px; border-bottom: 1px solid #ddd; }
+      li:hover { background-color: #f0f0f0; cursor: pointer; }
+    </style>
+    <script>
+      // 페이지 로드 시 서버의 getFolderList() 호출
+      function loadFolders() {
+        google.script.run.withSuccessHandler(displayFolders).getFolderList();
+      }
+
+      // 서버에서 전달받은 폴더 목록을 UI에 표시
+      function displayFolders(folders) {
+        var folderListDiv = document.getElementById('folderList');
+        folderListDiv.innerHTML = "";
+
+        if (folders.length === 0) {
+          folderListDiv.innerHTML = '불러올 폴더가 없습니다.';
+          return;
+        }
+        
+        var ul = document.createElement('ul');
+        folders.forEach(function(folder) {
+          var li = document.createElement('li');
+          li.textContent = folder.name;
+          li.onclick = function() {
+            selectFolder(folder.id);
+          };
+          ul.appendChild(li);
+        });
+        folderListDiv.appendChild(ul);
+      }
+
+      // 폴더 선택 시 processSelectedFolder() 호출
+      function selectFolder(folderId) {
+        google.script.run.withSuccessHandler(function(msg) {
+          alert(msg);
+          google.script.host.close();
+        }).processSelectedFolder(folderId);
+      }
+
+      window.onload = loadFolders;
+    </script>
+  </head>
+  <body>
+    <h3>폴더 선택</h3>
+    <div id="folderList">폴더 목록을 불러오는 중...</div>
+  </body>
+</html>
