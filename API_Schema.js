@@ -1,7 +1,7 @@
 /**
  * API 요청 파라미터 검증을 위한 스키마 정의
  */
-class RequestSchema {
+class API_RequestSchema {
   /**
    * 검증 결과를 ContentService 응답으로 변환
    * @param {Object} validation - 검증 결과 객체

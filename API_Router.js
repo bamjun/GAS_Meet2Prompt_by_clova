@@ -1,7 +1,7 @@
-class APIRouter {
+class API_Router {
   handleTranscribe(e) {
-    const validation = RequestSchema.validateTranscribeParams(e.parameter);
-    const validationResponse = RequestSchema.createValidationResponse(validation);
+    const validation = API_RequestSchema.validateTranscribeParams(e.parameter);
+    const validationResponse = API_RequestSchema.createValidationResponse(validation);
     if (validationResponse) return validationResponse;
     
     const transcribeService = new TranscribeService();
@@ -15,8 +15,8 @@ class APIRouter {
   }
 
   handleAiPrompt(e) {
-    const validation = RequestSchema.validateAiPromptParams(e.parameter);
-    const validationResponse = RequestSchema.createValidationResponse(validation);
+    const validation = API_RequestSchema.validateAiPromptParams(e.parameter);
+    const validationResponse = API_RequestSchema.createValidationResponse(validation);
     if (validationResponse) return validationResponse;
 
     const aiPromptService = new AiPromptService();
@@ -31,11 +31,11 @@ class APIRouter {
 
 // 전역 핸들러 함수들
 function apiRouterTranscribe(e) {
-  const router = new APIRouter();
+  const router = new API_Router();
   return router.handleTranscribe(e);
 }
 
 function apiRouterAiPrompt(e) {
-  const router = new APIRouter();
+  const router = new API_Router();
   return router.handleAiPrompt(e);
 }
