@@ -1,5 +1,43 @@
 const test_api_service_ = "";
 
+// 클로바 API를 이용해서 스크립트로변환하기
+class API_Service_Transcribe {
+  processTranscription(fileId, row) {
+    const docId = this.transcribeVideo(fileId);
+    this.updateSpreadsheet(docId, row);
+    
+    return {
+      docId: docId
+    };
+  }
+
+  // 구글드라이버 id로 MP4파일을 가져와서 클로바 API로 전사하기
+  transcribeVideo(fileId) {
+    
+
+  }
+
+  updateSpreadsheet(docId, row) {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getActiveSheet();
+    
+    // 문서 ID 설정
+    sheet.getRange(row, 5).setValue(docId);
+
+    // 문서 링크 설정
+    const docUrl = "https://docs.google.com/document/d/" + docId + "/edit";
+    const hyperlinkFormula = '=HYPERLINK("' + docUrl + '", "바로가기")';
+    sheet.getRange(row, 6).setFormula(hyperlinkFormula);
+
+    // AI 변환 링크 설정
+    const url = WEBAPP_URL + "?action=aiPrompt&fileId=" + docId + "&row=" + row;
+    const hyperlinkFormulaForAI = '=HYPERLINK("' + url + '", "변환")';
+    sheet.getRange(row, 7).setFormula(hyperlinkFormulaForAI);
+  }
+
+}
+
+
 
 class TranscribeService {
   processTranscription(fileId, row, param_row) {
