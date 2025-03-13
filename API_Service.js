@@ -12,9 +12,113 @@ class API_Service_Transcribe {
   }
 
   // 구글드라이버 id로 MP4파일을 가져와서 클로바 API로 전사하기
-  transcribeVideo(fileId) {
-    
+  // 구글드라이버 id로 MP4파일을 가져와서 클로바 API로 전사하기
+  transcribeVideo(fileId, bucketName) {
+    try {
+      // 1. 구글 드라이브에서 파일 다운로드
+      const file = DriveApp.getFileById(fileId);
+      const fileBlob = file.getBlob();
 
+      // 2. Clova Speech API 호출 준비
+      const clovaInvokeUrl = PropertiesService.getScriptProperties().getProperty("CLOVA_INVOKE_URL") || "https://clovaspeech-gw.ncloud.com";
+      const clovaSecret = PropertiesService.getScriptProperties().getProperty("CLOVA_SECRET_KEY");
+      if (!clovaSecret) {
+        throw new Error("CLOVA_SECRET_KEY가 설정되지 않았습니다.");
+      }
+
+      const requestBody = {
+        language: "ko-KR",
+        completion: "sync",
+        wordAlignment: true,
+        fullText: true,
+        diarization: {
+          enable: true,
+          speakerCountMin: 2,
+          speakerCountMax: 2
+        }
+      };
+
+      // Clova API는 multipart/form-data 형식으로 파일과 파라미터를 전송합니다.
+      const paramsBlob = Utilities.newBlob(JSON.stringify(requestBody), "application/json");
+      const payload = {
+        media: fileBlob,
+        params: paramsBlob
+      };
+
+      const headers = {
+        "Accept": "application/json;UTF-8",
+        "X-CLOVASPEECH-API-KEY": clovaSecret
+      };
+
+      const options = {
+        method: "post",
+        payload: payload,
+        headers: headers,
+        muteHttpExceptions: true
+      };
+
+      const response = UrlFetchApp.fetch(clovaInvokeUrl + "/recognizer/upload", options);
+      const statusCode = response.getResponseCode();
+      const responseText = response.getContentText();
+      Logger.log("API 응답 상태 코드: " + statusCode);
+      Logger.log("API 응답 내용: " + responseText);
+
+      if (statusCode === 200) {
+        const result = JSON.parse(responseText);
+        let transcription = "";
+        if (result.segments && result.segments.length > 0) {
+          result.segments.forEach(segment => {
+            const startTime = API_Service_Utils.formatTime(segment.start);
+            const speakerName = (segment.speaker && segment.speaker.name) ? segment.speaker.name : "unknown";
+            const text = segment.text || "";
+            transcription += `${startTime} speaker ${speakerName} - ${text}\n`;
+          });
+        }
+
+        // 4. (선택사항) 결과를 Google Cloud Storage (GCS)에 저장
+        if (bucketName) {
+          const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+          const resultBlobName = `clova_results/${fileId}_${timestamp}.json`;
+
+          // GCS 업로드 기능은 Cloud Storage Advanced Service를 사용하거나 REST API로 구현해야 합니다.
+          // 아래는 Cloud Storage Advanced Service를 사용하여 업로드하는 예시입니다.
+          /*
+          const uploadData = {
+            original_result: result,
+            formatted_transcription: transcription
+          };
+          const blob = Utilities.newBlob(JSON.stringify(uploadData, null, 2), 'application/json');
+          Storage.Objects.insert(
+            {
+              bucket: bucketName,
+              name: resultBlobName,
+              contentType: 'application/json'
+            },
+            bucketName,
+            blob
+          );
+          */
+          
+          // 업로드된 결과의 경로를 지정합니다.
+          result.gcs_result_path = `gs://${bucketName}/${resultBlobName}`;
+        }
+        
+        return {
+          status: "success",
+          message: "음성 인식이 완료되었습니다.",
+          result: result,
+          transcription: transcription
+        };
+      } else {
+        const errorMsg = `Clova API 요청 실패: ${statusCode} - ${responseText}`;
+        Logger.log(errorMsg);
+        throw new Error(errorMsg);
+      }
+    } catch (e) {
+      const errorMsg = "음성 인식 처리 중 오류 발생: " + e.message;
+      Logger.log(errorMsg);
+      throw new Error(errorMsg);
+    }
   }
 
   updateSpreadsheet(docId, row) {
@@ -177,3 +281,16 @@ class AiPromptService {
   }
 }
 
+
+
+class API_Service_Utils {
+  // 헬퍼 함수: 밀리초(ms)를 [HH:MM:SS] 형식으로 변환
+  formatTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = num => num < 10 ? "0" + num : num;
+    return `[${pad(hours)}:${pad(minutes)}:${pad(seconds)}]`;
+  }
+}
