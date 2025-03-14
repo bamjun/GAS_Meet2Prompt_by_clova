@@ -1,5 +1,6 @@
 const test_api_service_ = "";
 
+
 // 클로바 API를 이용해서 스크립트로변환하기
 class API_Service_Transcribe {
   processTranscription(fileId, row) {
@@ -13,15 +14,18 @@ class API_Service_Transcribe {
 
   // 구글드라이버 id로 MP4파일을 가져와서 클로바 API로 전사하기
   // 구글드라이버 id로 MP4파일을 가져와서 클로바 API로 전사하기
-  transcribeVideo(fileId, bucketName) {
+  transcribeVideo(fileId) {
     try {
       // 1. 구글 드라이브에서 파일 다운로드
       const file = DriveApp.getFileById(fileId);
       const fileBlob = file.getBlob();
 
       // 2. Clova Speech API 호출 준비
-      const clovaInvokeUrl = PropertiesService.getScriptProperties().getProperty("CLOVA_INVOKE_URL") || "https://clovaspeech-gw.ncloud.com";
-      const clovaSecret = PropertiesService.getScriptProperties().getProperty("CLOVA_SECRET_KEY");
+      // const clovaInvokeUrl = PropertiesService.getScriptProperties().getProperty("CLOVA_INVOKE_URL") || "https://clovaspeech-gw.ncloud.com";
+      // const clovaSecret = PropertiesService.getScriptProperties().getProperty("CLOVA_SECRET_KEY");
+      const clovaInvokeUrl = config_clova_invoke_url;
+      const clovaSecret = config_clova_secret;
+      
       if (!clovaSecret) {
         throw new Error("CLOVA_SECRET_KEY가 설정되지 않았습니다.");
       }
@@ -32,9 +36,7 @@ class API_Service_Transcribe {
         wordAlignment: true,
         fullText: true,
         diarization: {
-          enable: true,
-          speakerCountMin: 2,
-          speakerCountMax: 2
+          enable: true
         }
       };
 
@@ -73,34 +75,6 @@ class API_Service_Transcribe {
             const text = segment.text || "";
             transcription += `${startTime} speaker ${speakerName} - ${text}\n`;
           });
-        }
-
-        // 4. (선택사항) 결과를 Google Cloud Storage (GCS)에 저장
-        if (bucketName) {
-          const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
-          const resultBlobName = `clova_results/${fileId}_${timestamp}.json`;
-
-          // GCS 업로드 기능은 Cloud Storage Advanced Service를 사용하거나 REST API로 구현해야 합니다.
-          // 아래는 Cloud Storage Advanced Service를 사용하여 업로드하는 예시입니다.
-          /*
-          const uploadData = {
-            original_result: result,
-            formatted_transcription: transcription
-          };
-          const blob = Utilities.newBlob(JSON.stringify(uploadData, null, 2), 'application/json');
-          Storage.Objects.insert(
-            {
-              bucket: bucketName,
-              name: resultBlobName,
-              contentType: 'application/json'
-            },
-            bucketName,
-            blob
-          );
-          */
-          
-          // 업로드된 결과의 경로를 지정합니다.
-          result.gcs_result_path = `gs://${bucketName}/${resultBlobName}`;
         }
         
         return {
@@ -293,4 +267,11 @@ class API_Service_Utils {
     const pad = num => num < 10 ? "0" + num : num;
     return `[${pad(hours)}:${pad(minutes)}:${pad(seconds)}]`;
   }
+}
+
+
+
+function test_api_service_1 () {
+  const apiservice = new API_Service_Transcribe();
+  Logger.log(apiservice.transcribeVideo("1sCl2L7tKwNQvAAN-K8_aHdNDxD8NCD8b"));
 }

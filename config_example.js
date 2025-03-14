@@ -19,3 +19,14 @@
 
 
 // const test_doc_id = "SOME DOC-ID";
+
+
+// const cloud_run_url = "";
+
+
+// const cloud_run_account_email = "";
+
+// const config_clova_invoke_url = "";
+// const config_clova_secret = "";
+
+
